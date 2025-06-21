@@ -111,10 +111,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- Built with ❤️ by [Your Name]
+- Built with ❤️ by Fahim Ur Rehman Shah
 - Special thanks to all open-source contributors
 - Icons by [Material Icons](https://material.io/resources/icons/)
 
 ## 📬 Contact
 
-For any queries or contributions, please reach out to [your.email@example.com](mailto:your.email@example.com)
+For any queries or contributions, please reach out to [fahimshah651@gmail.com](mailto:your.email@example.com)
