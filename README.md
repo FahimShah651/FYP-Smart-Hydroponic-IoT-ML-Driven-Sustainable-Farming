@@ -5,6 +5,14 @@
 
 Smart Hydroponic is an innovative IoT and Machine Learning based solution for sustainable farming. This project integrates sensor data collection, real-time monitoring, and predictive analytics to optimize plant growth in hydroponic systems.
 
+## 🌐 Live Demo
+
+Try out the live web application: [Smart Hydroponic Web App](https://smart-hydroponic-27a0b.web.app/)
+
+## 🎥 Demonstration Video
+
+Watch the system in action: [Smart Hydroponic Demo Video](https://youtu.be/3ybJvk8gTpk)
+
 ## 🚀 Key Features
 
 - **Real-time Monitoring**: Track environmental parameters (temperature, humidity, pH, nutrients, etc.)
