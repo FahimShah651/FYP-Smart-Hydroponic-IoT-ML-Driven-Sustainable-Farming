@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Hydroponic System</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Firebase v9 -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            transition: transform 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .card-header {
+            border-radius: 15px 15px 0 0 !important;
+            font-weight: bold;
+        }
+        .sensor-value {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        .sensor-unit {
+            font-size: 1rem;
+            color: #6c757d;
+        }
+        .status-indicator {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .status-connected {
+            background-color: #28a745;
+        }
+        .status-disconnected {
+            background-color: #dc3545;
+        }
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+        #connection-status {
+            font-size: 0.9rem;
+        }
+        .control-card {
+            background-color: #f1f8ff;
+        }
+        .chart-container {
+            position: relative;
+            height: 250px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-leaf me-2"></i>Smart Hydroponic System
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="index.html">Public View</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="sheets-dashboard.html">Google Sheets Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="admin.html">Admin Login</a>
+                    </li>
+                </ul>
+                <div id="connection-status">
+                    <span class="status-indicator status-disconnected"></span>
+                    <span>Disconnected</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="alert alert-info" role="alert">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <span id="last-updated">Loading system data...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Environment Sensors -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <i class="fas fa-temperature-high me-2"></i>Environment
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-6 text-center mb-3">
+                                <div class="sensor-label">Temperature</div>
+                                <div class="sensor-value" id="temperature">--</div>
+                                <div class="sensor-unit">°C</div>
+                            </div>
+                            <div class="col-6 text-center mb-3">
+                                <div class="sensor-label">Humidity</div>
+                                <div class="sensor-value" id="humidity">--</div>
+                                <div class="sensor-unit">%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Water Parameters -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <i class="fas fa-tint me-2"></i>Water Parameters
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-4 text-center mb-3">
+                                <div class="sensor-label">TDS</div>
+                                <div class="sensor-value" id="tds">--</div>
+                                <div class="sensor-unit">ppm</div>
+                            </div>
+                            <div class="col-4 text-center mb-3">
+                                <div class="sensor-label">pH</div>
+                                <div class="sensor-value" id="ph">--</div>
+                                <div class="sensor-unit"></div>
+                            </div>
+                            <div class="col-4 text-center mb-3">
+                                <div class="sensor-label">EC</div>
+                                <div class="sensor-value" id="ec">--</div>
+                                <div class="sensor-unit">μS/cm</div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="progress" style="height: 25px;">
+                                    <div id="water-level-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                </div>
+                                <div class="text-center mt-1">Water Level</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <!-- Water Parameters -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-success text-white">
+                        <i class="fas fa-tint me-2"></i>Water Parameters
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="sensor-item">
+                                    <div class="sensor-label">Water Humidity</div>
+                                    <div class="sensor-value" id="water-humidity">--</div>
+                                    <div class="sensor-unit">%</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="sensor-item">
+                                    <div class="sensor-label">Water Temperature</div>
+                                    <div class="sensor-value" id="water-temperature">--</div>
+                                    <div class="sensor-unit">°C</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="sensor-item">
+                                    <div class="sensor-label">Water Conductivity</div>
+                                    <div class="sensor-value" id="water-conductivity">--</div>
+                                    <div class="sensor-unit">μS/cm</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="sensor-item">
+                                    <div class="sensor-label">Water pH</div>
+                                    <div class="sensor-value" id="water-ph">--</div>
+                                    <div class="sensor-unit">pH</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nutrients -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-danger text-white">
+                        <i class="fas fa-flask me-2"></i>Nutrients
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-4 text-center mb-3">
+                                <div class="sensor-label">Nitrogen (N)</div>
+                                <div class="sensor-value" id="nitrogen">--</div>
+                                <div class="sensor-unit">mg/kg</div>
+                            </div>
+                            <div class="col-4 text-center mb-3">
+                                <div class="sensor-label">Phosphorus (P)</div>
+                                <div class="sensor-value" id="phosphorus">--</div>
+                                <div class="sensor-unit">mg/kg</div>
+                            </div>
+                            <div class="col-4 text-center mb-3">
+                                <div class="sensor-label">Potassium (K)</div>
+                                <div class="sensor-value" id="potassium">--</div>
+                                <div class="sensor-unit">mg/kg</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <!-- Admin Login Button -->
+            <div class="col-md-12 mb-4 text-end">
+                <a href="admin.html" class="btn btn-primary">
+                    <i class="fas fa-user-lock me-2"></i>Admin Login
+                </a>
+            </div>
+            
+            <!-- Historical Data -->
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <i class="fas fa-chart-line me-2"></i>Historical Data
+                        <div class="d-flex justify-content-end align-items-center">
+                            <div class="me-2">
+                                <select class="form-select form-select-sm" id="time-range">
+                                    <option value="12">Last 12 hours</option>
+                                    <option value="24">Last 24 hours</option>
+                                    <option value="48">Last 2 days</option>
+                                    <option value="168">Last week</option>
+                                    <option value="720">Last month</option>
+                                </select>
+                            </div>
+                            <div>
+                                <select class="form-select form-select-sm" id="chart-parameter">
+                                    <option value="temperature">Temperature</option>
+                                    <option value="humidity">Humidity</option>
+                                    <option value="tds">TDS</option>
+                                    <option value="ph">pH</option>
+                                    <option value="ec">EC</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="history-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Firebase configuration -->
+    <script src="firebase-config.js"></script>
+    
+    <script>
+        // Initialize Firebase for public view using REST API
+        function initApp() {
+            // Firebase database URL
+            const databaseURL = "https://your-project-id-default-rtdb.your-region.firebasedatabase.app";
+            const googleScriptUrl = 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL';
+
+            // Function to fetch data using REST API
+            function fetchDataFromFirebase() {
+                // Fetch latest readings
+                fetch(`${databaseURL}/latest_readings.json`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data) {
+                            updateUI(data);
+                            updateConnectionStatus(true, 'Firebase');
+                            
+                            // Update last updated time
+                            // Since ESP32 is using millis() which isn't a proper timestamp,
+                            // we'll use the current time instead
+                            const date = new Date();
+                            document.getElementById('last-updated').textContent = `Last updated: ${date.toLocaleString()}`;
+                        } else {
+                            console.log('No data available in Firebase');
+                            document.getElementById('last-updated').textContent = 'No data available in Firebase database';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching data:', error);
+                        document.getElementById('last-updated').textContent = 'Error fetching data from Firebase';
+                        updateConnectionStatus(false, 'Firebase');
+                    });
+                
+                // !!! IMPORTANT: Replace with your deployed Google Apps Script URL !!!
+                const googleScriptUrl = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE'; // e.g. 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
+                
+                // Global variable to store historical data from Google Sheets (array) or Firebase (object for fallback)
+                let globalHistoricalData = null;
+                
+                // Function to fetch and generate historical data
+                function fetchHistoricalData() {
+                    console.log('Fetching data for chart...');
+                    document.getElementById('history-chart').style.opacity = '0.5';
+                    const timeRangeHours = parseInt(document.getElementById('time-range').value) || 12;
+                    console.log(`Attempting to fetch data from Google Sheets for the last ${timeRangeHours} hours (approx)`);
+
+                    // Try to fetch data from Google Sheets first
+                    fetch(`${googleScriptUrl}?action=getChartData`)
+                        .then(response => {
+                            if (!response.ok) {
+                                // If response is not OK, log the raw text and then throw error
+                                return response.text().then(text => {
+                                    console.error('Google Sheets fetch error - Raw response text (not ok):', text);
+                                    throw new Error(`HTTP error! status: ${response.status}, body: ${text.substring(0, 200)}`);
+                                });
+                            }
+                            // Clone the response to be able to read it as JSON and then potentially as text in the catch block
+                            const clonedResponse = response.clone();
+                            return response.json().catch(jsonError => {
+                                // If .json() fails, try to log the raw text from the cloned response
+                                return clonedResponse.text().then(text => {
+                                    console.error('Google Sheets fetch - JSON parsing failed. Raw response text:', text);
+                                    throw jsonError; // Re-throw the original JSON parsing error
+                                });
+                            });
+                        })
+                        .then(sheetData => {
+                            if (sheetData && Array.isArray(sheetData) && sheetData.length > 0) {
+                                console.log('Data received from Google Sheets:', sheetData.length, 'records');
+                                globalHistoricalData = sheetData; // sheetData is an array of objects
+                                generateChartData(timeRangeHours);
+                            } else if (sheetData && sheetData.error) {
+                                console.error('Error from Google Sheets script:', sheetData.error);
+                                console.log('Falling back to Firebase latest_readings for mock data.');
+                                fallbackToMockOrDemoData(timeRangeHours);
+                            } else {
+                                console.log('No data returned from Google Sheets or data is not an array. Falling back.');
+                                fallbackToMockOrDemoData(timeRangeHours);
+                            }
+                        })
+                        .catch(error => {
+                            // This catch block will now handle errors from response.ok check, 
+                            // JSON parsing, or other network issues.
+                            console.error('Error processing Google Sheets data:', error);
+                            console.log('Falling back to Firebase latest_readings for mock data.');
+                            fallbackToMockOrDemoData(timeRangeHours);
+                        });
+                }
+
+                function fallbackToMockOrDemoData(timeRangeHours) {
+                    fetch(`${databaseURL}/latest_readings.json`)
+                        .then(response => response.json())
+                        .then(latestData => {
+                            if (latestData) {
+                                console.log('Using latest Firebase readings to generate mock chart data.');
+                                generateMockData(latestData, timeRangeHours);
+                            } else {
+                                console.log('No latest Firebase data, generating demo chart data.');
+                                generateDemoData(timeRangeHours);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching latest Firebase data for fallback:', error);
+                            console.log('Generating demo chart data as final fallback.');
+                            generateDemoData(timeRangeHours);
+                        });
+                }
+                
+                // Generate chart data based on time range from globalHistoricalData (expected to be an array from GSheets)
+                function generateChartData(timeRangeHours) {
+                    const parameter = document.getElementById('chart-parameter').value || 'temperature';
+                    const now = new Date();
+                    // Cutoff time for filtering: Google Sheets data might be extensive,
+                    // so we filter it on the client-side for the selected view.
+                    const cutoffTime = now.getTime() - (timeRangeHours * 60 * 60 * 1000);
+
+                    if (!globalHistoricalData || !Array.isArray(globalHistoricalData)) {
+                        console.log('globalHistoricalData is not an array or is null. Falling back to mock/demo.');
+                        fallbackToMockOrDemoData(timeRangeHours);
+                        document.getElementById('history-chart').style.opacity = '1';
+                        return;
+                    }
+
+                    // Filter data based on timestamp and the selected timeRangeHours
+                    // Assumes timestamps from Google Sheets are numerical (milliseconds since epoch)
+                    const filteredSheetData = globalHistoricalData.filter(entry => {
+                        // Ensure entry.timestamp is a number before comparison
+                        const entryTimestamp = Number(entry.timestamp);
+                        return !isNaN(entryTimestamp) && entryTimestamp > cutoffTime;
+                    });
+                    
+                    if (filteredSheetData.length > 0) {
+                        console.log(`Displaying ${filteredSheetData.length} data points from Google Sheets for the last ${timeRangeHours} hours`);
+                        initChartWithData(filteredSheetData); // Pass the filtered array directly
+                    } else {
+                        console.log('No data from Google Sheets in the selected time range. Generating mock data as fallback.');
+                        // Fallback to mock data if filtered Google Sheets data is empty
+                        fetch(`${databaseURL}/latest_readings.json`)
+                            .then(response => response.json())
+                            .then(latestData => {
+                                if (latestData) {
+                                    generateMockData(latestData, timeRangeHours);
+                                } else {
+                                    generateDemoData(timeRangeHours);
+                                }
+                            })
+                            .catch(() => generateDemoData(timeRangeHours));
+                    }
+                    
+                    document.getElementById('history-chart').style.opacity = '1';
+                }
+                
+                // Generate mock data based on latest readings
+                function generateMockData(latestData, timeRangeHours) {
+                    console.log('Generating mock data based on latest readings');
+                    const mockData = {};
+                    const now = new Date();
+                    
+                    // Calculate number of data points based on time range
+                    // For longer time ranges, use fewer points to avoid overwhelming the chart
+                    let numPoints;
+                    let intervalMinutes;
+                    
+                    if (timeRangeHours <= 24) {
+                        // For 24 hours or less: one point every 15 minutes
+                        intervalMinutes = 15;
+                        numPoints = Math.ceil(timeRangeHours * 60 / intervalMinutes);
+                    } else if (timeRangeHours <= 48) {
+                        // For 2 days: one point every 30 minutes
+                        intervalMinutes = 30;
+                        numPoints = Math.ceil(timeRangeHours * 60 / intervalMinutes);
+                    } else if (timeRangeHours <= 168) {
+                        // For 1 week: one point every hour
+                        intervalMinutes = 60;
+                        numPoints = Math.ceil(timeRangeHours * 60 / intervalMinutes);
+                    } else {
+                        // For 1 month: one point every 3 hours
+                        intervalMinutes = 180;
+                        numPoints = Math.ceil(timeRangeHours * 60 / intervalMinutes);
+                    }
+                    
+                    console.log(`Generating ${numPoints} data points with ${intervalMinutes} minute intervals`);
+                    
+                    // Generate data points with realistic variations
+                    for (let i = 0; i < numPoints; i++) {
+                        const timeKey = now.getTime() - (i * intervalMinutes * 60 * 1000);
+                        
+                        // Create variations that make sense over time
+                        // Use sine waves to create more realistic patterns
+                        const hourOfDay = new Date(timeKey).getHours();
+                        const dayFactor = Math.sin((hourOfDay / 24) * Math.PI * 2);
+                        
+                        // Temperature varies by time of day (higher during day, lower at night)
+                        const tempVariation = dayFactor * 2 + (Math.random() * 0.6) - 0.3;
+                        
+                        // Humidity varies inversely with temperature
+                        const humidityVariation = -dayFactor * 5 + (Math.random() * 2) - 1;
+                        
+                        // Other parameters have smaller random variations
+                        const tdsVariation = (Math.random() * 20) - 10 + (i % 3) * 5;
+                        const phVariation = (Math.random() * 0.2) - 0.1 + (i % 4) * 0.05;
+                        const ecVariation = (Math.random() * 40) - 20 + (i % 3) * 10;
+                        
+                        mockData['point_' + i] = {
+                            temperature: latestData.temperature + tempVariation,
+                            humidity: latestData.humidity + humidityVariation,
+                            tds: latestData.tds + tdsVariation,
+                            ph: latestData.ph + phVariation,
+                            ec: latestData.ec + ecVariation,
+                            timestamp: timeKey
+                        };
+                    }
+                    
+                    console.log('Generated mock data for chart');
+                    initChartWithData(mockData);
+                    
+                    // Remove loading indicator
+                    document.getElementById('history-chart').style.opacity = '1';
+                }
+                
+                // Generate demo data if no real data is available
+                function generateDemoData(timeRangeHours) {
+                    console.log('Generating demo data');
+                    const demoData = {};
+                    const now = new Date();
+                    
+                    // Calculate number of data points and interval similar to mock data
+                    let numPoints;
+                    let intervalMinutes;
+                    
+                    if (timeRangeHours <= 24) {
+                        intervalMinutes = 15;
+                        numPoints = Math.ceil(timeRangeHours * 60 / intervalMinutes);
+                    } else if (timeRangeHours <= 48) {
+                        intervalMinutes = 30;
+                        numPoints = Math.ceil(timeRangeHours * 60 / intervalMinutes);
+                    } else if (timeRangeHours <= 168) {
+                        intervalMinutes = 60;
+                        numPoints = Math.ceil(timeRangeHours * 60 / intervalMinutes);
+                    } else {
+                        intervalMinutes = 180;
+                        numPoints = Math.ceil(timeRangeHours * 60 / intervalMinutes);
+                    }
+                    
+                    // Base values for demo data
+                    const baseTemp = 25;
+                    const baseHumidity = 60;
+                    const baseTds = 800;
+                    const basePh = 6.5;
+                    const baseEc = 1500;
+                    
+                    // Generate data points with realistic variations
+                    for (let i = 0; i < numPoints; i++) {
+                        const timeKey = now.getTime() - (i * intervalMinutes * 60 * 1000);
+                        const hourOfDay = new Date(timeKey).getHours();
+                        const dayFactor = Math.sin((hourOfDay / 24) * Math.PI * 2);
+                        
+                        demoData['point_' + i] = {
+                            temperature: baseTemp + dayFactor * 3 + (Math.random() * 1) - 0.5,
+                            humidity: baseHumidity - dayFactor * 10 + (Math.random() * 5) - 2.5,
+                            tds: baseTds + (Math.random() * 50) - 25 + (i % 5) * 10,
+                            ph: basePh + (Math.random() * 0.2) - 0.1 + (i % 6) * 0.05,
+                            ec: baseEc + (Math.random() * 100) - 50 + (i % 4) * 25,
+                            timestamp: timeKey
+                        };
+                    }
+                    
+                    console.log('Generated demo data for chart');
+                    initChartWithData(demoData);
+                    
+                    // Remove loading indicator
+                    document.getElementById('history-chart').style.opacity = '1';
+                }
+                
+                // Initial data fetch
+                fetchHistoricalData();
+                
+                // Add event listener for time range change
+                document.getElementById('time-range').addEventListener('change', function() {
+                    if (globalHistoricalData) {
+                        generateChartData(parseInt(this.value));
+                    } else {
+                        fetchHistoricalData();
+                    }
+                });
+            }
+            
+            // Initial data fetch
+            fetchDataFromFirebase();
+            
+            // Set up refresh interval (every 30 seconds)
+            setInterval(fetchDataFromFirebase, 30000);
+            
+            // Set up chart parameter selector
+            document.getElementById('chart-parameter').addEventListener('change', function() {
+                const parameter = this.value;
+                
+                // Fetch historical data for selected parameter
+                fetch(`${databaseURL}/sensor_data.json?limitToLast=24`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data) {
+                            updateChartWithData(data, parameter);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching historical data:', error);
+                    });
+            });
+        }
+        
+        function fetchData() {
+            // This function is not needed when using Firebase real-time listeners
+            // It's kept here for compatibility with the original code
+        }
+        
+        function checkConnection() {
+            // This function is not needed when using Firebase real-time listeners
+            // Firebase will automatically handle connection status
+        }
+        
+        function updateUI(data) {
+            // Update sensor values
+            document.getElementById('temperature').textContent = data.temperature ? data.temperature.toFixed(1) : '--';
+            document.getElementById('humidity').textContent = data.humidity ? data.humidity.toFixed(1) : '--';
+            document.getElementById('tds').textContent = data.tds ? data.tds.toFixed(0) : '--';
+            document.getElementById('ph').textContent = data.ph ? data.ph.toFixed(2) : '--';
+            document.getElementById('ec').textContent = data.ec ? data.ec.toFixed(0) : '--';
+            
+            // Update water level
+            const waterLevelBar = document.getElementById('water-level-bar');
+            if (data.waterLevel !== undefined) {
+                const level = data.waterLevel;
+                waterLevelBar.style.width = level + '%';
+                waterLevelBar.textContent = level + '%';
+                waterLevelBar.setAttribute('aria-valuenow', level);
+            }
+            
+            // Update water parameters
+            document.getElementById('water-humidity').textContent = data.waterHumidity ? data.waterHumidity.toFixed(1) : '--';
+            document.getElementById('water-temperature').textContent = data.waterTemperature ? data.waterTemperature.toFixed(1) : '--';
+            
+            // Display conductivity in both μS/cm and mS/cm
+            if (data.waterConductivity) {
+                const microS = data.waterConductivity;
+                const milliS = (microS / 1000).toFixed(2);
+                document.getElementById('water-conductivity').textContent = `${microS} (${milliS} mS/cm)`;
+            } else {
+                document.getElementById('water-conductivity').textContent = '--';
+            }
+            
+            document.getElementById('water-ph').textContent = data.waterPH ? data.waterPH.toFixed(2) : '--';
+            
+            // Update nutrients
+            document.getElementById('nitrogen').textContent = data.nitrogen ? data.nitrogen.toFixed(0) : '--';
+            document.getElementById('phosphorus').textContent = data.phosphorus ? data.phosphorus.toFixed(0) : '--';
+            document.getElementById('potassium').textContent = data.potassium ? data.potassium.toFixed(0) : '--';
+            
+            // Update last updated time
+            const date = new Date(data.timestamp || Date.now());
+            document.getElementById('last-updated').textContent = `Last updated: ${date.toLocaleString()}`;
+        }
+        
+        function updateConnectionStatus(isConnected, source) {
+            const statusIndicator = document.querySelector('.status-indicator');
+            const statusText = document.querySelector('#connection-status span:nth-child(2)');
+            
+            if (isConnected) {
+                statusIndicator.classList.remove('status-disconnected');
+                statusIndicator.classList.add('status-connected');
+                statusText.textContent = `Connected to ${source}`;
+            } else {
+                statusIndicator.classList.remove('status-connected');
+                statusIndicator.classList.add('status-disconnected');
+                statusText.textContent = 'Disconnected';
+            }
+        }
+        
+        // Chart variables
+        let historyChart = null;
+        
+        // Store the chart data for quick parameter switching
+        let chartDataCache = null;
+        
+        function initChartWithData(data) {
+            console.log('Initializing chart with data:', data);
+            const ctx = document.getElementById('history-chart').getContext('2d');
+            
+            // Cache the data for quick parameter switching
+            chartDataCache = data;
+            
+            // Destroy existing chart if it exists
+            if (historyChart) {
+                historyChart.destroy();
+            }
+            
+            historyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Temperature',
+                        data: [],
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 500 // Faster animation for better responsiveness
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: {
+                                color: 'rgba(200, 200, 200, 0.2)'
+                            }
+                        },
+                        x: {
+                            reverse: true,
+                            grid: {
+                                color: 'rgba(200, 200, 200, 0.2)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            enabled: true,
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                title: function(tooltipItems) {
+                                    if (tooltipItems.length > 0) {
+                                        const date = new Date(parseInt(tooltipItems[0].raw.timestamp || tooltipItems[0].raw.x));
+                                        return date.toLocaleString();
+                                    }
+                                    return '';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Get selected parameter or default to temperature
+            const parameter = document.getElementById('chart-parameter').value || 'temperature';
+            console.log('Loading initial chart data with parameter:', parameter);
+            
+            // Load initial chart data
+            updateChartWithData(data, parameter);
+            
+            // Add event listener for parameter change with debounce
+            const parameterSelector = document.getElementById('chart-parameter');
+            if (parameterSelector) {
+                // Remove existing listeners to prevent duplicates
+                const newParamSelector = parameterSelector.cloneNode(true);
+                parameterSelector.parentNode.replaceChild(newParamSelector, parameterSelector);
+                
+                // Add new listener with debounce
+                newParamSelector.addEventListener('change', function() {
+                    // Show quick loading indicator
+                    document.getElementById('history-chart').style.opacity = '0.7';
+                    
+                    // Use setTimeout to give UI time to update
+                    setTimeout(() => {
+                        updateChartWithData(chartDataCache, this.value);
+                        document.getElementById('history-chart').style.opacity = '1';
+                    }, 10);
+                });
+            }
+        }
+        
+        function updateChartWithData(data, parameter) {
+            console.log('Updating chart with parameter:', parameter, 'Data received:', data);
+            if (!historyChart) {
+                console.error('Chart not initialized');
+                return;
+            }
+            
+            const dataPoints = [];
+            const labels = [];
+            
+            // Set chart colors based on parameter
+            let borderColor, backgroundColor;
+            switch (parameter) {
+                case 'temperature':
+                    borderColor = 'rgba(255, 99, 132, 1)';
+                    backgroundColor = 'rgba(255, 99, 132, 0.2)';
+                    break;
+                case 'humidity':
+                    borderColor = 'rgba(54, 162, 235, 1)';
+                    backgroundColor = 'rgba(54, 162, 235, 0.2)';
+                    break;
+                case 'tds':
+                    borderColor = 'rgba(255, 206, 86, 1)';
+                    backgroundColor = 'rgba(255, 206, 86, 0.2)';
+                    break;
+                case 'ph':
+                    borderColor = 'rgba(75, 192, 192, 1)';
+                    backgroundColor = 'rgba(75, 192, 192, 0.2)';
+                    break;
+                case 'ec':
+                    borderColor = 'rgba(153, 102, 255, 1)';
+                    backgroundColor = 'rgba(153, 102, 255, 0.2)';
+                    break;
+                default:
+                    borderColor = 'rgba(255, 99, 132, 1)';
+                    backgroundColor = 'rgba(255, 99, 132, 0.2)';
+            }
+            
+            // Ensure 'entries' is an array of data objects
+            let entries;
+            if (Array.isArray(data)) {
+                entries = [...data]; // Use a copy of the array if it's already an array
+            } else if (typeof data === 'object' && data !== null) {
+                entries = Object.values(data); // For Firebase-like object of objects
+            } else {
+                console.error('Invalid data format for chart. Expected array or object of objects.');
+                entries = [];
+            }
+            
+            console.log('Processing', entries.length, 'data points after normalization');
+            
+            // Sort by timestamp (newest first for display)
+            if (entries.length > 0 && entries[0] && entries[0].timestamp !== undefined) {
+                entries.sort((a, b) => {
+                    const tsA = Number(a.timestamp) || 0; // Ensure numeric for comparison
+                    const tsB = Number(b.timestamp) || 0; // Ensure numeric for comparison
+                    return tsB - tsA; // Descending order (newest first)
+                });
+            }
+            
+            // Extract data points and labels
+            entries.forEach((entry, index) => {
+                // Skip entries without the selected parameter
+                if (entry[parameter] === undefined) return;
+                
+                // Convert string values to numbers if needed
+                let value = entry[parameter];
+                if (typeof value === 'string') {
+                    value = parseFloat(value);
+                }
+                
+                // Skip invalid values
+                if (isNaN(value)) return;
+                
+                dataPoints.push(value);
+                
+                // Create time labels
+                let timeLabel;
+                if (entry.timestamp) {
+                    const date = new Date(entry.timestamp);
+                    if (date.getFullYear() > 1970) {
+                        timeLabel = date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+                    } else {
+                        timeLabel = `Point ${index + 1}`;
+                    }
+                } else {
+                    timeLabel = `Point ${index + 1}`;
+                }
+                
+                labels.push(timeLabel);
+            });
+            
+            console.log('Chart data prepared:', {
+                labels: labels,
+                dataPoints: dataPoints,
+                parameter: parameter
+            });
+            
+            // Update chart with new data
+            historyChart.data.labels = labels;
+            historyChart.data.datasets[0].label = parameter.charAt(0).toUpperCase() + parameter.slice(1);
+            historyChart.data.datasets[0].data = dataPoints;
+            historyChart.data.datasets[0].borderColor = borderColor;
+            historyChart.data.datasets[0].backgroundColor = backgroundColor;
+            
+            // Update y-axis label based on parameter
+            let yAxisLabel = '';
+            switch (parameter) {
+                case 'temperature': yAxisLabel = '°C'; break;
+                case 'humidity': yAxisLabel = '%'; break;
+                case 'tds': yAxisLabel = 'ppm'; break;
+                case 'ph': yAxisLabel = 'pH'; break;
+                case 'ec': yAxisLabel = 'μS/cm'; break;
+            }
+            
+            historyChart.options.scales.y.title = {
+                display: true,
+                text: yAxisLabel
+            };
+            
+            historyChart.update();
+            console.log('Chart updated successfully');
+        }
+        
+        function controlDevice(device, state) {
+            // Update device state in Firebase
+            const database = firebase.database();
+            database.ref(`control/relays/${device}`).set(state);
+        }
+        
+        // Initialize the app when the document is loaded
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>

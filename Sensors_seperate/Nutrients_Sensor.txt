@@ -1,0 +1,44 @@
+void readSoilSensor() {
+  byte queryData[] = {0x01, 0x03, 0x00, 0x00, 0x00, 0x07, 0x04, 0x08};
+  byte receivedData[19];
+  
+  // Set RS485 to transmit mode
+  digitalWrite(DE_PIN, HIGH);
+  digitalWrite(RE_PIN, HIGH);
+  delay(10);
+  
+  // Send query data
+  mySerial.write(queryData, sizeof(queryData));
+  mySerial.flush();
+  
+  // Set RS485 to receive mode
+  digitalWrite(DE_PIN, LOW);
+  digitalWrite(RE_PIN, LOW);
+  
+  // Wait for response
+  delay(500);
+  
+  if (mySerial.available() >= sizeof(receivedData)) {
+    mySerial.readBytes(receivedData, sizeof(receivedData));
+    
+    // Parse data
+    unsigned int rawHumidity = (receivedData[3] << 8) | receivedData[4];
+    unsigned int rawTemperature = (receivedData[5] << 8) | receivedData[6];
+    unsigned int rawConductivity = (receivedData[7] << 8) | receivedData[8];
+    unsigned int rawPH = (receivedData[9] << 8) | receivedData[10];
+    unsigned int rawNitrogen = (receivedData[11] << 8) | receivedData[12];
+    unsigned int rawPhosphorus = (receivedData[13] << 8) | receivedData[14];
+    unsigned int rawPotassium = (receivedData[15] << 8) | receivedData[16];
+    
+    // Convert raw values
+    Water_Humidity = (float)rawHumidity / 10.0;
+    Water_Temperature = (float)rawTemperature / 10.0;
+    Water_Conductivity = rawConductivity;
+    Water_PH = (float)rawPH / 10.0;
+    nitrogen = rawNitrogen;
+    phosphorus = rawPhosphorus;
+    potassium = rawPotassium;
+  } else {
+    Serial.println("No data received or incomplete data");
+  }
+}

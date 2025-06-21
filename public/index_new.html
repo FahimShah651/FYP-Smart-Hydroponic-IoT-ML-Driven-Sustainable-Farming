@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Hydroponic System</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Firebase v9 -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            transition: transform 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .card-header {
+            border-radius: 15px 15px 0 0 !important;
+            font-weight: bold;
+        }
+        .sensor-value {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        .sensor-unit {
+            font-size: 1rem;
+            color: #6c757d;
+        }
+        .status-indicator {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .status-connected {
+            background-color: #28a745;
+        }
+        .status-disconnected {
+            background-color: #dc3545;
+        }
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+        #connection-status {
+            font-size: 0.9rem;
+        }
+        .control-card {
+            background-color: #f1f8ff;
+        }
+        .chart-container {
+            position: relative;
+            height: 250px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-leaf me-2"></i>Smart Hydroponic System
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="index.html">Public View</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="admin.html">Admin Login</a>
+                    </li>
+                </ul>
+                <div id="connection-status">
+                    <span class="status-indicator status-disconnected"></span>
+                    <span>Disconnected</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="alert alert-info" role="alert">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <span id="last-updated">Loading system data...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Environment Sensors -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <i class="fas fa-temperature-high me-2"></i>Environment
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-6 text-center mb-3">
+                                <div class="sensor-label">Temperature</div>
+                                <div class="sensor-value" id="temperature">--</div>
+                                <div class="sensor-unit">°C</div>
+                            </div>
+                            <div class="col-6 text-center mb-3">
+                                <div class="sensor-label">Humidity</div>
+                                <div class="sensor-value" id="humidity">--</div>
+                                <div class="sensor-unit">%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Water Parameters -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <i class="fas fa-tint me-2"></i>Water Parameters
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-4 text-center mb-3">
+                                <div class="sensor-label">TDS</div>
+                                <div class="sensor-value" id="tds">--</div>
+                                <div class="sensor-unit">ppm</div>
+                            </div>
+                            <div class="col-4 text-center mb-3">
+                                <div class="sensor-label">pH</div>
+                                <div class="sensor-value" id="ph">--</div>
+                                <div class="sensor-unit"></div>
+                            </div>
+                            <div class="col-4 text-center mb-3">
+                                <div class="sensor-label">EC</div>
+                                <div class="sensor-value" id="ec">--</div>
+                                <div class="sensor-unit">μS/cm</div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="progress" style="height: 25px;">
+                                    <div id="water-level-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                </div>
+                                <div class="text-center mt-1">Water Level</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Soil Parameters -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <i class="fas fa-seedling me-2"></i>Soil Parameters
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-6 text-center mb-3">
+                                <div class="sensor-label">Soil Humidity</div>
+                                <div class="sensor-value" id="soil-humidity">--</div>
+                                <div class="sensor-unit">%</div>
+                            </div>
+                            <div class="col-6 text-center mb-3">
+                                <div class="sensor-label">Soil Temperature</div>
+                                <div class="sensor-value" id="soil-temperature">--</div>
+                                <div class="sensor-unit">°C</div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-6 text-center mb-3">
+                                <div class="sensor-label">Soil Conductivity</div>
+                                <div class="sensor-value" id="soil-conductivity">--</div>
+                                <div class="sensor-unit">μS/cm</div>
+                            </div>
+                            <div class="col-6 text-center mb-3">
+                                <div class="sensor-label">Soil pH</div>
+                                <div class="sensor-value" id="soil-ph">--</div>
+                                <div class="sensor-unit"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <!-- Nutrients -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-danger text-white">
+                        <i class="fas fa-flask me-2"></i>Nutrients
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-4 text-center mb-3">
+                                <div class="sensor-label">Nitrogen (N)</div>
+                                <div class="sensor-value" id="nitrogen">--</div>
+                                <div class="sensor-unit">mg/kg</div>
+                            </div>
+                            <div class="col-4 text-center mb-3">
+                                <div class="sensor-label">Phosphorus (P)</div>
+                                <div class="sensor-value" id="phosphorus">--</div>
+                                <div class="sensor-unit">mg/kg</div>
+                            </div>
+                            <div class="col-4 text-center mb-3">
+                                <div class="sensor-label">Potassium (K)</div>
+                                <div class="sensor-value" id="potassium">--</div>
+                                <div class="sensor-unit">mg/kg</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Auto Mode Only (Public View) -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <i class="fas fa-robot me-2"></i>System Mode: Auto
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">This system is running in automatic mode. Manual controls are only available to administrators.</p>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="target-tds" class="form-label">Target TDS (ppm)</label>
+                                    <input type="number" class="form-control" id="target-tds" min="0" max="2000" value="800" disabled>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="target-ec" class="form-label">Target EC (μS/cm)</label>
+                                    <input type="number" class="form-control" id="target-ec" min="0" max="4000" value="1500" disabled>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="target-ph" class="form-label">Target pH</label>
+                                    <input type="number" class="form-control" id="target-ph" min="0" max="14" step="0.1" value="6.5" disabled>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="target-water-level" class="form-label">Target Water Level (%)</label>
+                                    <input type="number" class="form-control" id="target-water-level" min="0" max="100" value="80" disabled>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="alert alert-info" role="alert">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <span>Login as administrator to access manual controls and change target values.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <!-- Historical Data -->
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <i class="fas fa-chart-line me-2"></i>Historical Data
+                        <div class="float-end">
+                            <select class="form-select form-select-sm" id="chart-parameter">
+                                <option value="temperature">Temperature</option>
+                                <option value="humidity">Humidity</option>
+                                <option value="tds">TDS</option>
+                                <option value="ph">pH</option>
+                                <option value="ec">EC</option>
+                                <option value="waterLevel">Water Level</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="history-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Initialize Firebase
+        function initApp() {
+            const firebaseConfig = {
+                apiKey: "AIzaSyB945vphu9m3e1NzVEfcbhTkwQsKPz-rOw",
+                authDomain: "your-project-id.firebaseapp.com",
+                databaseURL: "https://your-project-id-default-rtdb.your-region.firebasedatabase.app",
+                projectId: "your-project-id",
+                storageBucket: "your-project-id.appspot.com",
+                messagingSenderId: "1234567890",
+                appId: "1:1234567890:web:abcdef123456",
+                measurementId: "G-XXXXXXXXXX"
+            };
+            
+            // Initialize Firebase
+            firebase.initializeApp(firebaseConfig);
+            
+            // Sign in with email and password (using anonymous auth for public view)
+            firebase.auth().signInAnonymously()
+                .then(() => {
+                    console.log('Anonymous authentication successful!');
+                    
+                    // Get a reference to the database service
+                    const database = firebase.database();
+                    
+                    // Set up real-time listeners
+                    const latestReadingsRef = database.ref('latest_readings');
+                    latestReadingsRef.on('value', (snapshot) => {
+                        const data = snapshot.val();
+                        if (data) {
+                            updateUI(data);
+                            updateConnectionStatus(true, 'Firebase');
+                        } else {
+                            console.log('No data available in Firebase');
+                            document.getElementById('last-updated').textContent = 'No data available in Firebase database';
+                        }
+                    }, (error) => {
+                        console.error('Database read error:', error);
+                        document.getElementById('last-updated').textContent = 'Error reading from Firebase: ' + error.message;
+                        updateConnectionStatus(false, 'Firebase');
+                    });
+                    
+                    // Initialize chart
+                    initChart(database);
+                    
+                    // Get target values to display (read-only)
+                    database.ref('control/targets').once('value', (snapshot) => {
+                        const targets = snapshot.val();
+                        if (targets) {
+                            document.getElementById('target-tds').value = targets.tds || 800;
+                            document.getElementById('target-ec').value = targets.ec || 1500;
+                            document.getElementById('target-ph').value = targets.ph || 6.5;
+                            document.getElementById('target-water-level').value = targets.waterLevel || 80;
+                        }
+                    });
+                })
+                .catch((error) => {
+                    // Handle authentication errors
+                    console.error('Firebase authentication error:', error);
+                    document.getElementById('last-updated').textContent = 'Firebase authentication error: ' + error.message;
+                    updateConnectionStatus(false, 'Firebase');
+                });
+        }
+        
+        function updateUI(data) {
+            // Update sensor values
+            document.getElementById('temperature').textContent = data.temperature ? data.temperature.toFixed(1) : '--';
+            document.getElementById('humidity').textContent = data.humidity ? data.humidity.toFixed(1) : '--';
+            document.getElementById('tds').textContent = data.tds ? data.tds.toFixed(0) : '--';
+            document.getElementById('ph').textContent = data.ph ? data.ph.toFixed(2) : '--';
+            document.getElementById('ec').textContent = data.ec ? data.ec.toFixed(0) : '--';
+            
+            // Update water level
+            const waterLevelBar = document.getElementById('water-level-bar');
+            if (data.waterLevel !== undefined) {
+                const level = data.waterLevel;
+                waterLevelBar.style.width = level + '%';
+                waterLevelBar.textContent = level + '%';
+                waterLevelBar.setAttribute('aria-valuenow', level);
+            }
+            
+            // Update soil parameters
+            document.getElementById('soil-humidity').textContent = data.soilHumidity ? data.soilHumidity.toFixed(1) : '--';
+            document.getElementById('soil-temperature').textContent = data.soilTemperature ? data.soilTemperature.toFixed(1) : '--';
+            document.getElementById('soil-conductivity').textContent = data.soilConductivity ? data.soilConductivity.toFixed(0) : '--';
+            document.getElementById('soil-ph').textContent = data.soilPH ? data.soilPH.toFixed(2) : '--';
+            
+            // Update nutrients
+            document.getElementById('nitrogen').textContent = data.nitrogen ? data.nitrogen.toFixed(0) : '--';
+            document.getElementById('phosphorus').textContent = data.phosphorus ? data.phosphorus.toFixed(0) : '--';
+            document.getElementById('potassium').textContent = data.potassium ? data.potassium.toFixed(0) : '--';
+            
+            // Update last updated time
+            const date = new Date(data.timestamp || Date.now());
+            document.getElementById('last-updated').textContent = `Last updated: ${date.toLocaleString()}`;
+        }
+        
+        function updateConnectionStatus(isConnected, source) {
+            const statusIndicator = document.querySelector('.status-indicator');
+            const statusText = document.querySelector('#connection-status span:nth-child(2)');
+            
+            if (isConnected) {
+                statusIndicator.classList.remove('status-disconnected');
+                statusIndicator.classList.add('status-connected');
+                statusText.textContent = `Connected to ${source}`;
+            } else {
+                statusIndicator.classList.remove('status-connected');
+                statusIndicator.classList.add('status-disconnected');
+                statusText.textContent = 'Disconnected';
+            }
+        }
+        
+        // Chart variables
+        let historyChart = null;
+        
+        function initChart(database) {
+            const ctx = document.getElementById('history-chart').getContext('2d');
+            historyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Temperature',
+                        data: [],
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderWidth: 2,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false
+                        },
+                        x: {
+                            reverse: true
+                        }
+                    }
+                }
+            });
+            
+            // Load initial chart data
+            updateChartData('temperature', database);
+        }
+        
+        function updateChartData(parameter, database) {
+            // Get historical data from Firebase
+            database.ref('sensor_data').limitToLast(24).once('value', (snapshot) => {
+                const data = snapshot.val();
+                if (!data) return;
+                
+                const dataPoints = [];
+                const labels = [];
+                
+                // Convert object to array and sort by timestamp
+                const entries = Object.entries(data).map(([key, value]) => value);
+                entries.sort((a, b) => a.timestamp - b.timestamp);
+                
+                // Extract data points and labels
+                entries.forEach(entry => {
+                    if (entry[parameter] !== undefined) {
+                        dataPoints.push(entry[parameter]);
+                        const date = new Date(entry.timestamp);
+                        labels.push(date.toLocaleTimeString());
+                    }
+                });
+                
+                // Update chart
+                historyChart.data.labels = labels;
+                historyChart.data.datasets[0].label = parameter.charAt(0).toUpperCase() + parameter.slice(1);
+                historyChart.data.datasets[0].data = dataPoints;
+                historyChart.update();
+            });
+        }
+        
+        // Initialize the app when the document is loaded
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>

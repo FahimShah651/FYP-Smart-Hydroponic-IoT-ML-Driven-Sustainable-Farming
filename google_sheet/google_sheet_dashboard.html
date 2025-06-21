@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Hydroponic System Dashboard</title>
+  <!-- Google Charts -->  
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <!-- html2canvas for PNG export -->
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <!-- Material Icons -->  
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <!-- Google Fonts -->  
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #4285F4;
+      --secondary-color: #34A853;
+      --accent-color: #FBBC05;
+      --error-color: #EA4335;
+      --bg-color: #f8f9fa;
+      --card-bg: #ffffff;
+      --text-color: #202124;
+      --border-radius: 8px;
+      --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    body {
+      font-family: 'Roboto', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      line-height: 1.6;
+    }
+    
+    .container {
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding: 16px 0;
+      border-bottom: 1px solid rgba(0,0,0,0.1);
+    }
+    
+    .title {
+      font-size: 24px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .title .material-icons {
+      color: var(--secondary-color);
+    }
+    
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 24px;
+      background-color: var(--card-bg);
+      padding: 16px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+    }
+    
+    .control-group {
+      flex: 1;
+      min-width: 200px;
+    }
+    
+    .control-label {
+      font-weight: 500;
+      margin-bottom: 8px;
+      display: block;
+    }
+    
+    select, button {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+      font-family: 'Roboto', sans-serif;
+      font-size: 14px;
+    }
+    
+    button {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    
+    button:hover {
+      background-color: #3367d6;
+    }
+    
+    .chart-container {
+      background-color: var(--card-bg);
+      padding: 16px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 24px;
+    }
+    
+    .chart-header {
+    align-items: center;
+    margin-bottom: 16px;
+    }
+    
+    .chart-title {
+      font-size: 18px;
+      font-weight: 500;
+      
+    }
+    .text{
+      text-align:center;
+    }
+    
+    #chart_div {
+      width: 100%;
+      height: 500px;
+    }
+    
+    .parameter-toggles {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    
+    .parameter-toggle {
+      display: inline-flex;
+      align-items: center;
+      background: #eee;
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s;
+    }
+    
+    .parameter-toggle.active {
+      color: white;
+    }
+    
+    .parameter-toggle .color-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 6px;
+      display: inline-block;
+    }
+    
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100px;
+      color: #777;
+    }
+    
+    .loading .material-icons {
+      animation: spin 1.5s linear infinite;
+      margin-right: 10px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    
+    .stat-card {
+      background-color: var(--card-bg);
+      padding: 16px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .stat-title {
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 8px;
+    }
+    
+    .stat-value {
+      font-size: 28px;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+    
+    .stat-unit {
+      font-size: 12px;
+      color: #777;
+    }
+    
+    .export-button {
+      margin: auto;
+      width: auto;
+    }
+    .space{
+      display:flex;
+      gap:10px;
+    }
+    
+    .multi-select {
+      position: relative;
+    }
+    
+    .multi-select-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      z-index: 10;
+      max-height: 200px;
+      overflow-y: auto;
+      display: none;
+    }
+    
+    .multi-select-dropdown.show {
+      display: block;
+    }
+    
+    .multi-select-option {
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+    
+    .multi-select-option:hover {
+      background-color: #f5f5f5;
+    }
+    
+    .multi-select-option input {
+      margin-right: 8px;
+    }
+    
+    .multi-select-display {
+      border: 1px solid #ddd;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    @media (max-width: 768px) {
+      .controls {
+        flex-direction: column;
+      }
+      
+      .stats {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .stats {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="title">
+        <span class="material-icons">eco</span>
+        Smart Hydroponic System Dashboard
+      </div>
+      <div id="last-update">Last updated: Loading...</div>
+    </div>
+    
+    <div class="controls">
+      <div class="control-group">
+        <label class="control-label">Time Range</label>
+        <select id="time-range">
+          <!-- Will be populated from script -->
+          <option value="60">Loading time ranges...</option>
+        </select>
+      </div>
+      
+      <div class="control-group">
+        <label class="control-label">Display Mode</label>
+        <select id="display-mode">
+          <option value="single">Single Parameter</option>
+          <option value="multiple">Multiple Parameters</option>
+        </select>
+      </div>
+      
+      <div class="control-group">
+        <label class="control-label">Actions</label>
+        <button id="refresh-btn">
+          <span class="material-icons">refresh</span> Refresh Data
+        </button>
+      </div>
+    </div>
+    
+    <div class="stats" id="stats-container">
+      <!-- Will be populated with current values -->
+      <div class="stat-card">
+        <div class="stat-title">Loading stats...</div>
+        <div class="stat-value">--</div>
+        <div class="stat-unit"></div>
+      </div>
+    </div>
+    
+    <div class="chart-container">
+      <div class="chart-header">
+        <div class="chart-title"><p class='text'>Sensor Data Visualization</p></div>
+        <div class="space">
+          <button class="export-button" id="export-chart-btn" style="margin-right: 10px;">
+            <span class="material-icons">image</span> Export Chart as PNG
+          </button>
+          <button class="export-button" id="export-btn">
+            <span class="material-icons">download</span> Export Data
+          </button>
+        </div>
+      </div>
+      
+      <div class="parameter-toggles" id="parameter-toggles">
+        <!-- Will be populated from script -->
+        <div class="parameter-toggle active" data-param="temperature">
+          <span class="color-indicator" style="background-color: #FF5733;"></span>
+          <span>Temperature</span>
+        </div>
+      </div>
+      
+      <div id="chart_div">
+        <div class="loading">
+          <span class="material-icons">hourglass_empty</span> Loading chart data...
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Load Google Charts
+    google.charts.load('current', {'packages':['corechart']});
+    google.charts.setOnLoadCallback(initDashboard);
+    
+    // Global variables
+    let chart = null;
+    let chartData = [];
+    let dashboardConfig = null;
+    let selectedParameters = ['temperature'];
+    let displayMode = 'single';
+    let currentTimeRange = 720; // Default to 12 hours
+    
+    // Initialize dashboard
+    function initDashboard() {
+      // Fetch dashboard configuration (parameters, time ranges)
+      google.script.run
+        .withSuccessHandler(handleConfigLoaded)
+        .withFailureHandler(handleError)
+        .getDashboardConfig();
+        
+      // Set up event listeners
+      document.getElementById('refresh-btn').addEventListener('click', refreshData);
+      document.getElementById('time-range').addEventListener('change', handleTimeRangeChange);
+      document.getElementById('display-mode').addEventListener('change', handleDisplayModeChange);
+      document.getElementById('export-btn').addEventListener('click', exportData);
+      document.getElementById('export-chart-btn').addEventListener('click', exportChartAsPng);
+    }
+    
+    // Handle configuration loaded
+    function handleConfigLoaded(config) {
+      dashboardConfig = config;
+      
+      // Populate time ranges
+      const timeRangeSelect = document.getElementById('time-range');
+      timeRangeSelect.innerHTML = '';
+      
+      config.timeRanges.forEach(range => {
+        const option = document.createElement('option');
+        option.value = range.id;
+        option.textContent = range.name;
+        if (range.id == currentTimeRange) {
+          option.selected = true;
+        }
+        timeRangeSelect.appendChild(option);
+      });
+      
+      // Populate parameter toggles
+      const togglesContainer = document.getElementById('parameter-toggles');
+      togglesContainer.innerHTML = '';
+      
+      config.parameters.forEach(param => {
+        const toggle = document.createElement('div');
+        toggle.className = 'parameter-toggle';
+        if (selectedParameters.includes(param.id)) {
+          toggle.classList.add('active');
+          toggle.style.backgroundColor = param.color;
+        }
+        toggle.dataset.param = param.id;
+        
+        const colorIndicator = document.createElement('span');
+        colorIndicator.className = 'color-indicator';
+        colorIndicator.style.backgroundColor = param.color;
+        
+        const label = document.createElement('span');
+        label.textContent = param.name;
+        
+        toggle.appendChild(colorIndicator);
+        toggle.appendChild(label);
+        toggle.addEventListener('click', () => toggleParameter(param.id, param.color, toggle));
+        
+        togglesContainer.appendChild(toggle);
+      });
+      
+      // Fetch initial data
+      refreshData();
+    }
+    
+    // Refresh data from server
+    function refreshData() {
+      // Show loading state
+      document.getElementById('chart_div').innerHTML = `
+        <div class="loading">
+          <span class="material-icons">hourglass_empty</span> Loading chart data...
+        </div>
+      `;
+      
+      // Fetch chart data
+      google.script.run
+        .withSuccessHandler(handleDataLoaded)
+        .withFailureHandler(handleError)
+        .getChartData(parseInt(currentTimeRange));
+    }
+    
+    // Handle data loaded
+    function handleDataLoaded(data) {
+      chartData = data;
+      updateLastUpdated();
+      updateStats(data);
+      drawChart(data);
+    }
+    
+    // Update last updated timestamp
+    function updateLastUpdated() {
+      const now = new Date();
+      const formattedDate = now.toLocaleString();
+      document.getElementById('last-update').textContent = `Last updated: ${formattedDate}`;
+    }
+    
+    // Update stats cards with latest values
+    function updateStats(data) {
+      if (!data || data.length === 0 || !dashboardConfig) return;
+      
+      // Get latest data point
+      const latest = data[data.length - 1];
+      
+      // Create stat cards
+      const statsContainer = document.getElementById('stats-container');
+      statsContainer.innerHTML = '';
+      
+      dashboardConfig.parameters.forEach(param => {
+        const value = latest[param.id];
+        if (value !== null && value !== undefined) {
+          const card = document.createElement('div');
+          card.className = 'stat-card';
+          
+          const title = document.createElement('div');
+          title.className = 'stat-title';
+          title.textContent = param.name;
+          
+          const valueElement = document.createElement('div');
+          valueElement.className = 'stat-value';
+          valueElement.textContent = typeof value === 'number' ? value.toFixed(1) : value;
+          
+          const unit = document.createElement('div');
+          unit.className = 'stat-unit';
+          unit.textContent = param.unit || '';
+          
+          card.appendChild(title);
+          card.appendChild(valueElement);
+          card.appendChild(unit);
+          
+          statsContainer.appendChild(card);
+        }
+      });
+    }
+    
+    // Draw chart with data
+    function drawChart(data) {
+      if (!data || data.length === 0 || !dashboardConfig) {
+        document.getElementById('chart_div').innerHTML = 'No data available for the selected time range.';
+        return;
+      }
+      
+      // Create data table
+      const dataTable = new google.visualization.DataTable();
+      dataTable.addColumn('datetime', 'Time');
+      
+      // Add columns for selected parameters
+      const paramConfig = {};
+      selectedParameters.forEach(paramId => {
+        const param = dashboardConfig.parameters.find(p => p.id === paramId);
+        if (param) {
+          dataTable.addColumn('number', param.name);
+          paramConfig[paramId] = {
+            color: param.color,
+            index: dataTable.getNumberOfColumns() - 1
+          };
+        }
+      });
+      
+      // Add data rows
+      data.forEach(point => {
+        const row = [new Date(point.timestamp)];
+        
+        selectedParameters.forEach(paramId => {
+          const value = point[paramId];
+          row.push(value !== null && value !== undefined ? value : null);
+        });
+        
+        dataTable.addRow(row);
+      });
+      
+      // Create chart options
+      const options = {
+        height: 500,
+        chartArea: { width: '85%', height: '75%' },
+        legend: { position: 'top' },
+        curveType: 'function',
+        lineWidth: 3,
+        pointSize: 4,
+        vAxis: {
+          gridlines: { color: '#f5f5f5' },
+          minorGridlines: { count: 0 }
+        },
+        hAxis: {
+          gridlines: { color: '#f5f5f5' },
+          format: 'HH:mm\ndd MMM'
+        },
+        explorer: {
+          actions: ['dragToZoom', 'rightClickToReset'],
+          axis: 'horizontal',
+          keepInBounds: true,
+          maxZoomIn: 0.01
+        },
+        animation: {
+          startup: true,
+          duration: 500,
+          easing: 'out'
+        },
+        tooltip: { isHtml: true },
+        series: {}
+      };
+      
+      // Set colors for each series
+      selectedParameters.forEach(paramId => {
+        const config = paramConfig[paramId];
+        if (config) {
+          options.series[config.index - 1] = { color: config.color };
+        }
+      });
+      
+      // Create chart
+      const chartDiv = document.getElementById('chart_div');
+      chartDiv.innerHTML = '';
+      chart = new google.visualization.LineChart(chartDiv);
+      chart.draw(dataTable, options);
+    }
+    
+    // Toggle parameter selection
+    function toggleParameter(paramId, color, element) {
+      if (displayMode === 'single') {
+        // In single mode, deselect all others and select only this one
+        selectedParameters = [paramId];
+        
+        // Update UI
+        document.querySelectorAll('.parameter-toggle').forEach(toggle => {
+          toggle.classList.remove('active');
+          toggle.style.backgroundColor = '';
+        });
+        
+        element.classList.add('active');
+        element.style.backgroundColor = color;
+      } else {
+        // In multiple mode, toggle this parameter
+        const index = selectedParameters.indexOf(paramId);
+        
+        if (index === -1) {
+          // Not selected, add it
+          selectedParameters.push(paramId);
+          element.classList.add('active');
+          element.style.backgroundColor = color;
+        } else {
+          // Already selected, remove it if not the last one
+          if (selectedParameters.length > 1) {
+            selectedParameters.splice(index, 1);
+            element.classList.remove('active');
+            element.style.backgroundColor = '';
+          }
+        }
+      }
+      
+      // Redraw chart
+      drawChart(chartData);
+    }
+    
+    // Handle time range change
+    function handleTimeRangeChange(event) {
+      currentTimeRange = event.target.value;
+      refreshData();
+    }
+    
+    // Handle display mode change
+    function handleDisplayModeChange(event) {
+      displayMode = event.target.value;
+      
+      if (displayMode === 'single' && selectedParameters.length > 1) {
+        // If switching to single mode but multiple params are selected,
+        // keep only the first one
+        selectedParameters = [selectedParameters[0]];
+        
+        // Update UI
+        document.querySelectorAll('.parameter-toggle').forEach(toggle => {
+          const paramId = toggle.dataset.param;
+          if (selectedParameters.includes(paramId)) {
+            const param = dashboardConfig.parameters.find(p => p.id === paramId);
+            toggle.classList.add('active');
+            toggle.style.backgroundColor = param.color;
+          } else {
+            toggle.classList.remove('active');
+            toggle.style.backgroundColor = '';
+          }
+        });
+        
+        // Redraw chart
+        drawChart(chartData);
+      }
+    }
+    
+    // Export the current chart as PNG image using a simpler, more reliable approach
+    function exportChartAsPng() {
+      if (!chart) {
+        alert('Chart is not available. Please wait for data to load.');
+        return;
+      }
+      
+      try {
+        // Get the chart's container element
+        const chartDiv = document.getElementById('chart_div');
+        
+        // Use html2canvas to capture the chart directly
+        html2canvas(chartDiv, {
+          backgroundColor: '#FFFFFF',
+          scale: 2, // Higher scale for better quality
+          logging: false,
+          allowTaint: true,
+          useCORS: true
+        }).then(canvas => {
+          try {
+            // Get parameter names and time range for the filename
+            let paramNames = selectedParameters.map(paramId => {
+              const param = dashboardConfig.parameters.find(p => p.id === paramId);
+              return param ? param.name.replace(/ /g, '_') : paramId;
+            }).join('_');
+            
+            const timeRangeText = document.getElementById('time-range').options[
+              document.getElementById('time-range').selectedIndex
+            ].text.replace(/ /g, '_');
+            
+            // Create download link
+            const link = document.createElement('a');
+            link.download = `hydroponic_${paramNames}_${timeRangeText}_${new Date().toISOString().slice(0, 10)}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+          } catch (e) {
+            console.error('Error creating download link:', e);
+            alert('Error creating download: ' + e.message);
+          }
+        }).catch(error => {
+          console.error('Error capturing chart with html2canvas:', error);
+          alert('Error capturing chart: ' + error.message);
+        });
+      } catch (e) {
+        console.error('Error preparing chart for export:', e);
+        alert('Error exporting chart: ' + e.message);
+      }
+    }
+    
+    // Export data to CSV
+    function exportData() {
+      if (!chartData || chartData.length === 0) {
+        alert('No data available to export');
+        return;
+      }
+      
+      // Create CSV content
+      let csv = 'Timestamp,';
+      dashboardConfig.parameters.forEach((param, index) => {
+        csv += param.name;
+        if (index < dashboardConfig.parameters.length - 1) {
+          csv += ',';
+        }
+      });
+      csv += '\n';
+      
+      chartData.forEach(point => {
+        const date = new Date(point.timestamp);
+        csv += date.toLocaleString() + ',';
+        
+        dashboardConfig.parameters.forEach((param, index) => {
+          const value = point[param.id];
+          csv += (value !== null && value !== undefined) ? value : '';
+          if (index < dashboardConfig.parameters.length - 1) {
+            csv += ',';
+          }
+        });
+        csv += '\n';
+      });
+      
+      // Create download link
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `hydroponic_data_${new Date().toISOString().slice(0, 10)}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    
+    // Handle errors
+    function handleError(error) {
+      console.error('Error:', error);
+      alert(`An error occurred: ${error}`);
+    }
+  </script>
+</body>
+</html>

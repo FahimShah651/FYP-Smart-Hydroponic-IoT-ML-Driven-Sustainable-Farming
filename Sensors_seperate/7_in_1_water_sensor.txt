@@ -1,0 +1,218 @@
+#include <SoftwareSerial.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+// OLED Display Configuration
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET -1  // Reset pin not used on most OLED modules
+#define OLED_ADDRESS 0x3C  // Common OLED address (0x3C or 0x3D)
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+// RS485 Configuration
+#define RE_PIN 7  // Receiver Enable pin
+#define DE_PIN 6  // Driver Enable pin
+SoftwareSerial mySerial(18, 17);  // RX, TX
+
+// Sensor data variables
+float soilHumidity = 0;
+float soilTemperature = 0;
+int soilConductivity = 0;
+float soilPH = 0;
+int nitrogen = 0;
+int phosphorus = 0;
+int potassium = 0;
+
+void setup() {
+  Serial.begin(9600);
+  mySerial.begin(4800);
+  
+  // Initialize RS485 control pins
+  pinMode(RE_PIN, OUTPUT);
+  pinMode(DE_PIN, OUTPUT);
+  digitalWrite(RE_PIN, LOW);
+  digitalWrite(DE_PIN, LOW);
+  
+  // Initialize OLED display with specific I2C pins for ESP32
+  Wire.begin(9, 8); // Use pins 9 (SDA) and 8 (SCL) for I2C on ESP32
+  delay(100); // Give the OLED some time to initialize
+  
+  // Try multiple addresses in case the default one doesn't work
+  bool displayFound = false;
+  
+  displayFound = display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDRESS);
+  
+  if(!displayFound) {
+    // Try alternative address
+    display = Adafruit_SSD1306(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+    displayFound = display.begin(SSD1306_SWITCHCAPVCC, 0x3D);
+  }
+  
+  if(!displayFound) {
+    Serial.println(F("SSD1306 not found. Check wiring!"));
+    // Continue anyway to see sensor values on Serial
+  } else {
+    Serial.println(F("OLED display initialized successfully"));
+  }
+  
+  display.clearDisplay();
+  display.setTextColor(WHITE);
+  
+  // Display startup message
+  displayStartupScreen();
+}
+
+void loop() {
+  // Read data from sensor
+  readSoilSensor();
+  
+  // Update display
+  updateDisplay();
+  
+  // Print data to serial monitor
+  printSerialData();
+  
+  delay(2000); // Update every 2 seconds
+}
+
+void displayStartupScreen() {
+  display.clearDisplay();
+  display.setTextColor(WHITE); // Use WHITE instead of SSD1306_WHITE
+  display.setTextSize(2);
+  display.setCursor(10, 10);
+  display.println("Soil Sensor");
+  display.setTextSize(1);
+  display.setCursor(20, 35);
+  display.println("Initializing...");
+  display.setCursor(15, 45);
+  display.println("Please wait...");
+  display.display();
+  delay(2000);
+}
+
+void readSoilSensor() {
+  byte queryData[] = {0x01, 0x03, 0x00, 0x00, 0x00, 0x07, 0x04, 0x08};
+  byte receivedData[19];
+  
+  // Set RS485 to transmit mode
+  digitalWrite(DE_PIN, HIGH);
+  digitalWrite(RE_PIN, HIGH);
+  delay(10);
+  
+  // Send query data
+  mySerial.write(queryData, sizeof(queryData));
+  mySerial.flush();
+  
+  // Set RS485 to receive mode
+  digitalWrite(DE_PIN, LOW);
+  digitalWrite(RE_PIN, LOW);
+  
+  // Wait for response
+  delay(500);
+  
+  if (mySerial.available() >= sizeof(receivedData)) {
+    mySerial.readBytes(receivedData, sizeof(receivedData));
+    
+    // Parse data
+    unsigned int rawHumidity = (receivedData[3] << 8) | receivedData[4];
+    unsigned int rawTemperature = (receivedData[5] << 8) | receivedData[6];
+    unsigned int rawConductivity = (receivedData[7] << 8) | receivedData[8];
+    unsigned int rawPH = (receivedData[9] << 8) | receivedData[10];
+    unsigned int rawNitrogen = (receivedData[11] << 8) | receivedData[12];
+    unsigned int rawPhosphorus = (receivedData[13] << 8) | receivedData[14];
+    unsigned int rawPotassium = (receivedData[15] << 8) | receivedData[16];
+    
+    // Convert raw values
+    soilHumidity = (float)rawHumidity / 10.0;
+    soilTemperature = (float)rawTemperature / 10.0;
+    soilConductivity = rawConductivity;
+    soilPH = (float)rawPH / 10.0;
+    nitrogen = rawNitrogen;
+    phosphorus = rawPhosphorus;
+    potassium = rawPotassium;
+  } else {
+    Serial.println("No data received or incomplete data");
+  }
+}
+
+void updateDisplay() {
+  display.clearDisplay();
+  display.setTextColor(WHITE);
+  
+  // Display title with larger text
+  display.setTextSize(1);
+  display.setCursor(20, 0);
+  display.println("SOIL PARAMETERS");
+  display.drawLine(0, 9, 128, 9, WHITE);
+  
+  // Display soil moisture and temperature
+  display.setCursor(0, 12);
+  display.print("Humidity: ");
+  display.print(soilHumidity, 1);
+  display.println("%");
+  
+  display.setCursor(0, 22);
+  display.print("Temp: ");
+  display.print(soilTemperature, 1);
+  display.println(" C");
+  
+  // Display EC in both units
+  float ecValue = soilConductivity / 1000.0; // Convert μS/cm to mS/cm (EC)
+  display.setCursor(0, 32);
+  display.print("EC: ");
+  display.print(ecValue, 2);
+  display.print(" / ");
+  display.print(soilConductivity);
+  display.println("");
+  
+  display.setCursor(0, 42);
+  display.print("pH: ");
+  display.print(soilPH, 1);
+  
+  // Display NPK values with better formatting
+  display.setCursor(0, 52);
+  display.print("N:");
+  display.print(nitrogen);
+  display.print(" P:");
+  display.print(phosphorus);
+  display.print(" K:");
+  display.print(potassium);
+  
+  display.display();
+  
+  // Debug - confirm display updates are being called
+  Serial.println("Display updated");
+}
+
+void printSerialData() {
+  Serial.println("---------------------");
+  Serial.print("Soil Humidity: ");
+  Serial.print(soilHumidity);
+  Serial.println("%");
+  
+  Serial.print("Soil Temperature: ");
+  Serial.print(soilTemperature);
+  Serial.println(" C");
+  
+  Serial.print("Soil Conductivity: ");
+  Serial.print(soilConductivity);
+  Serial.println(" uS/cm");
+  
+  Serial.print("EC Value: ");
+  Serial.print(soilConductivity / 1000.0, 2);
+  Serial.println(" mS/cm (EC)");
+  
+  Serial.print("Soil pH: ");
+  Serial.println(soilPH);
+  
+  Serial.print("Nitrogen: ");
+  Serial.println(nitrogen);
+  
+  Serial.print("Phosphorus: ");
+  Serial.println(phosphorus);
+  
+  Serial.print("Potassium: ");
+  Serial.println(potassium);
+  Serial.println("---------------------");
+}

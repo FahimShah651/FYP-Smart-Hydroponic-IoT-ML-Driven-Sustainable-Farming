@@ -1,0 +1,6 @@
+Google Api Key:
+YOUR_GOOGLE_API_KEY
+
+Google Sheet Id:
+YOUR_GOOGLE_SHEET_ID
+

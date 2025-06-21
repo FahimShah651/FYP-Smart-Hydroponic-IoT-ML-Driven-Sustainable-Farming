@@ -1,0 +1,48 @@
+{
+  "name": "smart-hydroponic",
+  "version": "1.0.0",
+  "description": "IoT and ML Driven Sustainable Farming System",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "test": "jest",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/smart-hydroponic.git"
+  },
+  "keywords": [
+    "iot",
+    "hydroponics",
+    "smart-farming",
+    "machine-learning",
+    "esp32"
+  ],
+  "author": "Your Name <your.email@example.com>",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.17.1",
+    "firebase": "^9.0.0",
+    "firebase-admin": "^10.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^10.0.0",
+    "google-auth-library": "^7.0.0",
+    "googleapis": "^80.0.0",
+    "socket.io": "^4.0.0",
+    "winston": "^3.3.3"
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "eslint-config-prettier": "^8.0.0",
+    "jest": "^27.0.0",
+    "nodemon": "^2.0.0",
+    "prettier": "^2.0.0",
+    "supertest": "^6.0.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

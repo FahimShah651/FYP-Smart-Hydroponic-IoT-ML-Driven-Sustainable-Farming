@@ -1,0 +1,8 @@
+
+
+
+void readTDSSensor() {
+  int tdsRaw = analogRead(TDSPIN);
+  float tdsVoltage = tdsRaw * 3.3 / 4095.0;
+  tdsValue = (133.42 * pow(tdsVoltage, 3) - 255.86 * pow(tdsVoltage, 2) + 857.39 * tdsVoltage) * 0.5;
+}

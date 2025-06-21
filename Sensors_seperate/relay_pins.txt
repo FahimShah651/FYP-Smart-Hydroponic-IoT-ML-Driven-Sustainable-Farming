@@ -1,0 +1,4 @@
+// Relay module pins
+#define RELAY_COUNT 8
+const int relayPins[RELAY_COUNT] = {0, 35, 36, 37, 38, 39, 40, 41};
+// Relays are active LOW

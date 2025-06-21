@@ -1,0 +1,65 @@
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <Adafruit_Sensor.h>
+#include <DHT.h>
+
+// WiFi credentials - Replace with your network details
+const char* ssid = "YOUR_WIFI_SSID";
+const char* password = "YOUR_WIFI_PASSWORD";
+
+// Google Apps Script Web App URL - Replace with your deployed web app URL
+const char* serverURL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL";
+
+// DHT11 Sensor Configuration
+#define DHTPIN 4         // DHT11 data pin connected to GPIO 4
+#define DHTTYPE DHT11    // Sensor type
+
+DHT dht(DHTPIN, DHTTYPE);
+
+void setup() {
+    Serial.begin(115200);
+    WiFi.begin(ssid, password);
+    Serial.print("Connecting to WiFi");
+
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(".");
+    }
+    Serial.println("\nConnected to WiFi!");
+
+    dht.begin();
+}
+
+void loop() {
+    if (WiFi.status() == WL_CONNECTED) {
+        HTTPClient http;
+
+        http.begin(serverURL);
+        http.addHeader("Content-Type", "application/json");
+
+        // Read temperature and humidity from DHT11
+        float temperature = dht.readTemperature();
+        float humidity = dht.readHumidity();
+
+        // Check if reading is valid
+        if (isnan(temperature) || isnan(humidity)) {
+            Serial.println("Failed to read from DHT sensor!");
+        } else {
+            // Create JSON data
+            String jsonData = "{\"temperature\": " + String(temperature) + ", \"humidity\": " + String(humidity) + "}";
+
+            Serial.println("Sending Data: " + jsonData);
+
+            // Send data to Google Sheets
+            int httpResponseCode = http.POST(jsonData);
+            Serial.print("HTTP Response code: ");
+            Serial.println(httpResponseCode);
+        }
+
+        http.end();
+    } else {
+        Serial.println("WiFi Disconnected!");
+    }
+
+    delay(1000); // Send data every 10 seconds
+}

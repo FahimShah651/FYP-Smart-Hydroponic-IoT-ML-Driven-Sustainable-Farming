@@ -1,0 +1,169 @@
+// Google Apps Script to receive data from ESP32 and log it to Google Sheets
+// You'll need to deploy this as a web app
+
+// Replace with your actual Google Sheet ID
+const SHEET_ID = 'YOUR_GOOGLE_SHEET_ID';
+const SHEET_NAME = 'Sheet1';
+
+function doGet(e) {
+  // Check if e and e.parameter exist
+  if (e && e.parameter) {
+    // Check if this is a request for averages
+    if (e.parameter.action === 'getAverages') {
+      return getAveragesOfLastRows();
+    }
+    
+    // If we have parameters but not the 'action=getAverages', assume it's data to save
+    if (e.parameter.timestamp) {
+      return saveData(e.parameter);
+    }
+  }
+  
+  // If e or e.parameter is undefined or no recognized action, return averages as default
+  return getAveragesOfLastRows();
+}
+
+// Function to save data to the spreadsheet
+function saveData(params) {
+  // Get the query parameters from the request
+  const timestamp = params.timestamp;
+  const temperature = params.temperature;
+  const humidity = params.humidity;
+  const soilHumidity = params.soilHumidity;
+  const soilTemperature = params.soilTemperature;
+  const soilConductivity = params.soilConductivity;
+  const soilPH = params.soilPH;
+  const nitrogen = params.nitrogen;
+  const phosphorus = params.phosphorus;
+  const potassium = params.potassium;
+  const waterLevel = params.waterLevel;
+  const tds = params.tds;
+  const ph = params.ph;
+  const ec = params.ec;
+  
+  // Log data to the spreadsheet
+  try {
+    const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
+    const sheet = spreadsheet.getSheetByName(SHEET_NAME);
+    
+    // Create a new row
+    const newRow = [
+      new Date(),      // Add current date/time
+      timestamp,       // Millis from ESP32
+      temperature,
+      humidity,
+      soilHumidity,
+      soilTemperature,
+      soilConductivity,
+      soilPH,
+      nitrogen,
+      phosphorus,
+      potassium,
+      waterLevel,
+      tds,
+      ph,
+      ec
+    ];
+    
+    // Append the row to the sheet
+    sheet.appendRow(newRow);
+    
+    // Return success message
+    return ContentService.createTextOutput('Data logged successfully to Google Sheets')
+      .setMimeType(ContentService.MimeType.TEXT);
+  } 
+  catch(error) {
+    // Return error message
+    return ContentService.createTextOutput('Error: ' + error.message)
+      .setMimeType(ContentService.MimeType.TEXT);
+  }
+}
+
+// Function to get the average of the last 5 rows for each parameter
+function getAveragesOfLastRows() {
+  try {
+    const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
+    const sheet = spreadsheet.getSheetByName(SHEET_NAME);
+    
+    // Get the total number of rows
+    const lastRow = sheet.getLastRow();
+    
+    // If there are less than 5 rows of data (plus header row), return what we have
+    const rowsToAverage = Math.min(5, lastRow - 1);
+    
+    if (rowsToAverage <= 0) {
+      return ContentService.createTextOutput(JSON.stringify({
+        error: 'No data available'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // Get the last 5 rows of data (or what's available)
+    const dataRange = sheet.getRange(lastRow - rowsToAverage + 1, 1, rowsToAverage, 15);
+    const data = dataRange.getValues();
+    
+    // Calculate averages
+    let sumTemperature = 0;
+    let sumHumidity = 0;
+    let sumSoilHumidity = 0;
+    let sumSoilTemperature = 0;
+    let sumSoilConductivity = 0;
+    let sumSoilPH = 0;
+    let sumNitrogen = 0;
+    let sumPhosphorus = 0;
+    let sumPotassium = 0;
+    let sumWaterLevel = 0;
+    let sumTds = 0;
+    let sumPh = 0;
+    let sumEc = 0;
+    
+    for (let i = 0; i < data.length; i++) {
+      // Add 0 if the value is not a number
+      sumTemperature += Number(data[i][2]) || 0;
+      sumHumidity += Number(data[i][3]) || 0;
+      sumSoilHumidity += Number(data[i][4]) || 0;
+      sumSoilTemperature += Number(data[i][5]) || 0;
+      sumSoilConductivity += Number(data[i][6]) || 0;
+      sumSoilPH += Number(data[i][7]) || 0;
+      sumNitrogen += Number(data[i][8]) || 0;
+      sumPhosphorus += Number(data[i][9]) || 0;
+      sumPotassium += Number(data[i][10]) || 0;
+      sumWaterLevel += Number(data[i][11]) || 0;
+      sumTds += Number(data[i][12]) || 0;
+      sumPh += Number(data[i][13]) || 0;
+      sumEc += Number(data[i][14]) || 0;
+    }
+    
+    // Create response object with averages
+    const averages = {
+      temperature: (sumTemperature / rowsToAverage).toFixed(1),
+      humidity: (sumHumidity / rowsToAverage).toFixed(1),
+      soilHumidity: (sumSoilHumidity / rowsToAverage).toFixed(1),
+      soilTemperature: (sumSoilTemperature / rowsToAverage).toFixed(1),
+      soilConductivity: Math.round(sumSoilConductivity / rowsToAverage),
+      soilPH: (sumSoilPH / rowsToAverage).toFixed(1),
+      nitrogen: Math.round(sumNitrogen / rowsToAverage),
+      phosphorus: Math.round(sumPhosphorus / rowsToAverage),
+      potassium: Math.round(sumPotassium / rowsToAverage),
+      waterLevel: (sumWaterLevel / rowsToAverage).toFixed(1),
+      tds: (sumTds / rowsToAverage).toFixed(1),
+      ph: (sumPh / rowsToAverage).toFixed(1),
+      ec: (sumEc / rowsToAverage).toFixed(1),
+      rowsAveraged: rowsToAverage,
+      lastUpdated: new Date().toISOString()
+    };
+    
+    // Return JSON response
+    return ContentService.createTextOutput(JSON.stringify(averages))
+      .setMimeType(ContentService.MimeType.JSON);
+  } 
+  catch(error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      error: error.message
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// This function will be triggered when setting up the web app
+function getUrl() {
+  return ScriptApp.getService().getUrl();
+}

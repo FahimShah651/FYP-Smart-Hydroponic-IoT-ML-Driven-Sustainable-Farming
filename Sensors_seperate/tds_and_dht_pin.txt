@@ -1,0 +1,4 @@
+// Sensor Pins
+#define DHTPIN 4
+#define TDSPIN 15
+#define DHTTYPE DHT11

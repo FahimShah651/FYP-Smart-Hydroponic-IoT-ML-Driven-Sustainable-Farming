@@ -1,0 +1,45 @@
+#include <NewPing.h>
+
+// Ultrasonic sensor pins
+#define TRIGGER_PIN 47
+#define ECHO_PIN 48
+#define MAX_DISTANCE 200  // cm
+
+// Tank calibration distances
+#define EMPTY_LEVEL 40    // Distance when tank is empty (cm)
+#define FULL_LEVEL 5      // Distance when tank is full (cm)
+
+// Global variables
+NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE);
+int distance = 0;
+int waterLevelPercent = 0;
+
+// Simple function to check water level
+void checkWaterLevel() {
+  distance = sonar.ping_cm();
+  
+  // If no reading (out of range), set to max distance
+  if (distance == 0) {
+    distance = MAX_DISTANCE;
+  }
+
+  // Calculate water level percentage
+  waterLevelPercent = map(distance, EMPTY_LEVEL, FULL_LEVEL, 0, 100);
+  waterLevelPercent = constrain(waterLevelPercent, 0, 100);
+
+  // Print water level
+  Serial.print("Distance: ");
+  Serial.print(distance);
+  Serial.print(" cm, Water Level: ");
+  Serial.print(waterLevelPercent);
+  Serial.println("%");
+}
+
+void setup() {
+  Serial.begin(115200);
+}
+
+void loop() {
+  checkWaterLevel();
+  delay(1000); // Check every 1 second
+}

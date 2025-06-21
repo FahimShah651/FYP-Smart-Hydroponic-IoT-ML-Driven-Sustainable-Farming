@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - Smart Hydroponic System</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Firebase v9 -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-container {
+            max-width: 400px;
+            width: 100%;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            background-color: white;
+        }
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .login-header i {
+            font-size: 48px;
+            color: #28a745;
+            margin-bottom: 15px;
+        }
+        .login-header h2 {
+            font-weight: bold;
+            color: #333;
+        }
+        .btn-login {
+            background-color: #28a745;
+            border-color: #28a745;
+            width: 100%;
+            padding: 10px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .btn-login:hover {
+            background-color: #218838;
+            border-color: #218838;
+        }
+        .alert {
+            display: none;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <i class="fas fa-leaf"></i>
+            <h2>Admin Login</h2>
+            <p class="text-muted">Smart Hydroponic System</p>
+        </div>
+        
+        <form id="login-form">
+            <div class="mb-3">
+                <label for="email" class="form-label">Email</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                    <input type="email" class="form-control" id="email" placeholder="Enter admin email" required>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                    <input type="password" class="form-control" id="password" placeholder="Enter password" required>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-login">
+                <i class="fas fa-sign-in-alt me-2"></i>Login
+            </button>
+        </form>
+        
+        <div class="alert alert-danger" id="error-message" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <span id="error-text"></span>
+        </div>
+        
+        <div class="text-center mt-3">
+            <a href="index.html" class="text-decoration-none">
+                <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+            </a>
+        </div>
+    </div>
+    
+    <script>
+        // Firebase configuration - Replace with your Firebase project configuration
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "your-project-id.firebaseapp.com",
+            databaseURL: "https://your-project-id-default-rtdb.your-region.firebasedatabase.app",
+            projectId: "your-project-id",
+            storageBucket: "your-project-id.appspot.com",
+            messagingSenderId: "1234567890",
+            appId: "1:1234567890:web:abcdef123456",
+            measurementId: "G-XXXXXXXXXX"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        
+        // Admin credentials - only this user is allowed to log in
+        const ADMIN_EMAIL = "fahimshah651@gmail.com";
+        
+        // Handle login form submission
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorMessage = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+            
+            // Hide any previous error messages
+            errorMessage.style.display = 'none';
+            
+            // Check if the email is the admin email
+            if (email !== ADMIN_EMAIL) {
+                errorText.textContent = "Access denied. Only authorized administrators can log in.";
+                errorMessage.style.display = 'block';
+                return;
+            }
+            
+            // Sign in with email and password
+            firebase.auth().signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // Store auth status in localStorage
+                    localStorage.setItem('hydroponicAdminAuth', 'true');
+                    
+                    // Redirect to dashboard with admin privileges
+                    window.location.href = 'dashboard.html';
+                })
+                .catch((error) => {
+                    // Show error message
+                    errorText.textContent = error.message;
+                    errorMessage.style.display = 'block';
+                });
+        });
+        
+        // Check if user is already logged in
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                // Only allow the admin email to access the dashboard
+                if (user.email === ADMIN_EMAIL & user.password === ADMIN_PASSWORD) {
+                    // User is the admin, redirect to dashboard
+                    window.location.href = 'dashboard.html';
+                } else {
+                    // Not the admin, sign them out
+                    firebase.auth().signOut().then(() => {
+                        errorText.textContent = "Access denied. Only authorized administrators can log in.";
+                        errorMessage.style.display = 'block';
+                    });
+                }
+            }
+        });
+        
+        // Clear any previous authentication on page load
+        window.addEventListener('load', function() {
+            // Sign out any existing users to force login
+            firebase.auth().signOut();
+            // Clear local storage
+            localStorage.removeItem('hydroponicAdminAuth');
+        });
+    </script>
+</body>
+</html>
