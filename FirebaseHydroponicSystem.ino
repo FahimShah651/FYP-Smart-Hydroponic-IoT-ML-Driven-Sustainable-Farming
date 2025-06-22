@@ -51,19 +51,19 @@ const int relayPins[RELAY_COUNT] = {0, 35, 36, 37, 38, 39, 40, 41};
 #define water_SENSOR_BAUD 4800
 
 // WiFi credentials
-const char* ssid = "Namal-Net";
-const char* password = "namal123";
+const char* ssid = "YOUR_WIFI_SSID";
+const char* password = "YOUR_WIFI_PASSWORD";
 
 // Firebase configuration
-const char* FIREBASE_HOST = "smart-hydroponic-27a0b-default-rtdb.asia-southeast1.firebasedatabase.app";
-const char* FIREBASE_API_KEY = "AIzaSyB945vphu9m3e1NzVEfcbhTkwQsKPz-rOw";
+const char* FIREBASE_HOST = "YOUR_FIREBASE_HOST";
+const char* FIREBASE_API_KEY = "YOUR_API_KEY";
 
 // Firebase authentication
-const char* FIREBASE_EMAIL = "fahimshah651@gmail.com";
-const char* FIREBASE_PASSWORD = "12201FA@shah";
+const char* FIREBASE_EMAIL = "YOUR_EMAIL";
+const char* FIREBASE_PASSWORD = "YOUR_PASSWORD";
 
 // Google Sheets Apps Script URL
-const char* scriptUrl = "https://script.google.com/macros/s/AKfycbyqc99ag9ZS5H5Brp3vRLiWuTaNrkbs1JEVL5VzF_u3PfnqqOOGuR-v_1z45J9Idqb5/exec";
+const char* scriptUrl = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL";
 
 
 // Initialize sensors
