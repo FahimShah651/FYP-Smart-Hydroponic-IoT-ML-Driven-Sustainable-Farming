@@ -312,12 +312,19 @@ graph TB
 - **Cybersecurity**: IoT security protocols and encryption
 - **Wireless Communication**: RF design and antenna engineering
 
-## 📄 Academic & Research Documentation
+## 📄 Professional Documentation & Portfolio
 
+### 📊 Technical Portfolio Documentation
+- **🎯 [Professional Profile](PROFILE.md)**: Comprehensive career profile and objectives
+- **🛠️ [Technical Skills Matrix](TECHNICAL_SKILLS.md)**: Detailed technical competencies and code examples
+- **⚡ [Electronics Portfolio](ELECTRONICS_PORTFOLIO.md)**: Circuit design, PCB layout, and hardware engineering
+- **🌐 [IoT Architecture](IOT_ARCHITECTURE.md)**: Enterprise-grade system design and cloud integration
+
+### 📑 Academic & Research Documentation
 This project includes comprehensive academic documentation demonstrating research methodology and technical depth:
 
 - **📑 Final Research Report**: Complete 100+ page technical documentation
-- **📊 Conference Paper**: Peer-reviewed publication on IoT agriculture systems
+- **📊 Conference Paper**: Peer-reviewed publication on IoT agriculture systems  
 - **📈 Interim Reports**: Progressive development and milestone achievements
 - **🎯 Technical Proposal**: Detailed system design and implementation plan
 - **📋 Presentation Materials**: Professional project presentations and demos
