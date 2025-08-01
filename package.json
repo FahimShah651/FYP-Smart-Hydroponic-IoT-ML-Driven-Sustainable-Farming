@@ -1,28 +1,45 @@
 {
-  "name": "smart-hydroponic",
+  "name": "smart-hydroponic-iot-system",
   "version": "1.0.0",
-  "description": "IoT and ML Driven Sustainable Farming System",
+  "description": "IoT and AI-Driven Smart Hydroponic System for Sustainable Farming - Demonstrating expertise in Embedded Systems, Electronics, and Machine Learning",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
     "test": "jest",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "build": "npm run lint && npm run test",
+    "deploy": "npm run build && npm start"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/smart-hydroponic.git"
+    "url": "https://github.com/FahimShah651/FYP-Smart-Hydroponic-IoT-ML-Driven-Sustainable-Farming.git"
   },
   "keywords": [
     "iot",
+    "embedded-systems",
+    "electronics",
+    "artificial-intelligence",
+    "machine-learning",
     "hydroponics",
     "smart-farming",
-    "machine-learning",
-    "esp32"
+    "esp32",
+    "sensor-integration",
+    "automation",
+    "predictive-analytics",
+    "firebase",
+    "nodejs",
+    "sustainable-agriculture",
+    "precision-farming"
   ],
-  "author": "Your Name <your.email@example.com>",
+  "author": {
+    "name": "Fahim Ur Rehman Shah",
+    "email": "fahimshah651@gmail.com",
+    "url": "https://www.linkedin.com/in/fahim-ur-rehman-shah/"
+  },
   "license": "MIT",
+  "homepage": "https://smart-hydroponic-27a0b.web.app/",
   "dependencies": {
     "express": "^4.17.1",
     "firebase": "^9.0.0",
